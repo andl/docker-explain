@@ -110,59 +110,67 @@ $ redis-cli -h 10.146.22.21 -p 40000 SET "docker"
 "awesome"
 ```
 
-The packet flows as following:
+###The request packet flow
 
 1. In=eth0, SRC=10.110.124.185 DST=10.146.22.21, DPT=40000
 
-  nat:prerouting
-  Matches:  A PREROUTING -m addrtype --dst-type LOCAL -j DOCKER
+   nat:prerouting
+   Matches:  A PREROUTING -m addrtype --dst-type LOCAL -j DOCKER
 
 2. In=eth0, SRC=10.110.124.185 DST=10.146.22.21, DPT=40000
 
-  docker
-  Matches: -A DOCKER -d 10.146.22.21/32 ! -i docker0 -p tcp -m tcp --dport 40000 -j DNAT --to-destination 172.17.0.5:6379
+   docker
+   Matches: -A DOCKER -d 10.146.22.21/32 ! -i docker0 -p tcp -m tcp --dport 40000 -j DNAT --to-destination 172.17.0.5:6379
 
-  DNAT: modify DST and DPT
+   DNAT: modify DST and DPT
 
 3. In=eth0  SRC=10.110.124.185 DST=172.17.0.5, DPT=6379
-  Routing decision: forward to docker0 interface (according to routing table).
+
+   Routing decision: forward to docker0 interface (according to routing table).
 
 
 4. In=eth0, out=docker0, SRC=10.110.124.185 DST=172.17.0.5, DPT=6379
-  filter:forward
-  Matches: default policy (ACCEPT)
+
+   filter:forward
+   Matches: default policy (ACCEPT)
   
-  nat: postfoward
-  Matches: default policy(ACCEPT)
+   nat: postfoward
+   Matches: default policy(ACCEPT)
 
-  To the wire (actually docker0 bridge device)
+   To the wire (actually docker0 bridge device)
 
-  4.5  In=eth0, SRC=10.110.124.185 DST=172.17.0.5, DPT=6379
+5. In=eth0, SRC=10.110.124.185 DST=172.17.0.5, DPT=6379
+  
     docker0 is a bridge interface. So we need to go through bridge code a bit.
 
     Frame from eatables:
     IN=veth72x2M5 OUT= MAC source = 9e:93:85:3f:24:b5 MAC dest = fe:bb:ce:6d:95:40 proto = 0x0806
+    
     ebtables:broute:brouting
     Matches: default policy ACCEPT (or bridge)
 
-5.  In=eth0, SRC=10.110.124.185 DST=172.17.0.5, DPT=6379
-  Please note that this hook was evoked in eatables rather than ip tables.
+5. In=eth0, SRC=10.110.124.185 DST=172.17.0.5, DPT=6379
+ 
+   Please note that this hook was evoked in eatables rather than ip tables.
 
-  nat:prerouing
-  Matches:  default policy (ACCPET) since it’s not a local IP (172.17.0.5)
+   nat:prerouing
+   Matches:  default policy (ACCPET) since it’s not a local IP (172.17.0.5)
 
 6. In=eth0, SRC=10.110.124.185 DST=172.17.0.5, DPT=6379
+    
+   Bridge decision: to IP protocol:
 
-  If we show mac address on the bridge device, we can see that the dest mac is a ports on bridge, so the bridge decision should send the frame to IP layer.
+   If we show mac address on the bridge device, we can see that the dest mac is a ports on bridge, so the bridge decision should send the frame to IP layer.
   
   ```
   $ brctl showmacs docker0
     port no mac addr                is local?       ageing timer
     1     fe:bb:ce:6d:95:40       yes                0.00 
   ```
-  Bridge decision: to IP protocol.
+  
 
 7. In=eth0, SRC=10.110.124.185 DST=172.17.0.5, DPT=6379
+ 
   Please note that this hook was evoked in eatables.
   
   eatables:filter:input
@@ -170,32 +178,37 @@ The packet flows as following:
 
 8. In=eth0, SRC=10.110.124.185 DST=172.17.0.5, DPT=6379
 
-  routing decision:
-  172.17.0.5 is the IP for current interface (veth72x2M5), so go to INPUT chain.
-  Our redis process is listen on the interface, so the packet will be send to application.
+   routing decision: Since 172.17.0.5 is the IP for current interface (veth72x2M5), so go to INPUT chain.
+   Our redis process is listen on the interface, so the packet will be send to application.
 
-  The request traversal flow has finished.
+   The request traversal flow has finished.
 
 
-Now the response packets: Note that the bridge flow is not mentioned for simplify.
+### The response packet flow
+
+Note that the bridge flow is not mentioned for simplify.
 
 1. In=docker0 OUT= SRC=172.17.0.5 DST=10.110.124.185 SPT=6379
-  conntrack table mark this connection state from NEW to ESTABLISHED since the double direction packets has been seen by firewall.
-  nats: prerouting is not consulted to RESTABLISHED connection.
 
-2. Routing, the packet is routing to eth0 (the default gw).
-  In=docker0 OUT=eth0 SRC=172.17.0.5 DST=10.110.124.185 SPT=6379
+   conntrack table mark this connection state from NEW to ESTABLISHED since the double direction packets has been seen by firewall.
+   
+   nats: prerouting is not consulted to RESTABLISHED connection.
 
-  filter: forward
-  MATCHES: -A FORWARD -i docker0 ! -o docker0 -j ACCEPT
+2. In=docker0 OUT=eth0 SRC=172.17.0.5 DST=10.110.124.185 SPT=6379
+  
+   Routing, the packet is routing to eth0 (the default gw).
+
+   filter: forward
+   MATCHES: -A FORWARD -i docker0 ! -o docker0 -j ACCEPT
 
 3. In=docker0 OUT=eth0 SRC=172.17.0.5 DST=10.110.124.185 SPT=6379
 
-  nat: POSTROUTING
-  MATCHES: -A POSTROUTING -s 172.17.0.0/16 ! -d 172.17.0.0/16 -j MASQUERADE
+   nat: POSTROUTING
+   MATCHES: -A POSTROUTING -s 172.17.0.0/16 ! -d 172.17.0.0/16 -j MASQUERADE
 
 4. In=docker0 OUT=eth0 SRC=10.110.124.185 DST=10.110.124.185 SPT=6379
-  To the wire.
+  
+   To the wire.
 
 
 Case 2 (local access)
@@ -204,7 +217,7 @@ Case 2 (local access)
 You may wonder why docker process also listen on 40000 port. It turns out to help access the service from localhost.
 
 ```
-$redis-cll -h localhost -P 40000 GET "docker"
+$redis-cll -h localhost -p 40000 GET "docker"
 "awesome"
 ```
 
@@ -214,6 +227,7 @@ $redis-cll -h localhost -P 40000 GET "docker"
   Matches: default policy (ACCEPT)
 
   filter:OUTPUT
+  
   Matches: default policy (ACCEPT)
 
   nat: postrouting
@@ -223,20 +237,21 @@ $redis-cll -h localhost -P 40000 GET "docker"
   To the lo device
 
 3. In=lo Out= SRC=127.0.0.1 DST=127.0.0.1 DPT=40000
-  lo receives the packets. Please note conn track mark the connection as ESTABLISHED. so again, the nat table is not consulted.
+   
+   lo receives the packets. Please note conntrack mark the connection as ESTABLISHED. So again, the nat table is not consulted.
 
 4. Routing, the packets will be processed by application.
+  
   filter:input
   Matches: default policy (ACCEPT)
-  The packets is received by Docker daemon. The localhost request traversal is finished.
+  
+  Docker create a TCP Porxy (proxy/tcp_proxy.go) which listen on 40000 to forward the request. By forwarding traffic by application layer, docker simplify the iptables rules for local access.
 
-  Docker want to simply filter:input for local access, so itself listen on 40000 and forward packet instead of using iptables.
+  The localhost request traversal is finished.
 
-5. Docker create a TCPPorxy (proxy/tcp_proxy.go) to forward
-  In= OUT=lo SRC=127.0.0.1 DST=127.0.0.1 
-  filter:OUTPUT
+  
+5. The foward and response workflow is omitted since no special iptables rules were applied.
 
-  The response workflow is omitted since no special iptables rules were applied.
 
 Case 3 (Inter container access)
 ========================
