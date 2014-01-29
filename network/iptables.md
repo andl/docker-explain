@@ -124,15 +124,15 @@ $ redis-cli -h 10.146.22.21 -p 40000 GET "docker"
    filter:forward
    Matches: default policy (ACCEPT)
   
-   nat: postfoward
+   nat: postrouting
    Matches: default policy(ACCEPT)
 
    To the wire (actually docker0 bridge device)
 
+5. After find the mac address of 172.17.0.5 using ARP, the bridge forward packet to interface veth72x2M5 since the eth0 of myredis container is connected to that port.    
+
 5. In=eth0, SRC=10.110.124.185 DST=172.17.0.5, DPT=6379
   
-    docker0 is a bridge interface. So we need to go through bridge code a bit.
-
     Frame from eatables:
     IN=veth72x2M5 OUT= MAC source = 9e:93:85:3f:24:b5 MAC dest = fe:bb:ce:6d:95:40 proto = 0x0806
     
@@ -141,7 +141,7 @@ $ redis-cli -h 10.146.22.21 -p 40000 GET "docker"
 
 5. In=eth0, SRC=10.110.124.185 DST=172.17.0.5, DPT=6379
  
-   Please note that this hook was evoked in eatables rather than ip tables.
+   Please note that this hook was evoked in link layer rather than ip layer.
 
    nat:prerouing
    Matches:  default policy (ACCPET) since it’s not a local IP (172.17.0.5)
@@ -204,7 +204,7 @@ Note that the bridge flow is not mentioned for simplify.
 Case 2 (local access)
 =====================
 
-You may wonder why docker process also listen on 40000 port. It turns out to help access the service from localhost.
+You may wonder why docker process also listen on 40000 port. It turns out to help access the service from localhost without add additional SNAT.
 
 ```
 $redis-cll -h localhost -p 40000 GET "docker"
@@ -223,7 +223,7 @@ $redis-cll -h localhost -p 40000 GET "docker"
   nat: postrouting
   Matches: default policy (ACCEPT)
 
-  Docker doesn’t have any special rules for local output packets.
+  Docker doesn’t have any special rules for packets comes outof lo interface.
   To the lo device
 
 3. In=lo Out= SRC=127.0.0.1 DST=127.0.0.1 DPT=40000
@@ -235,7 +235,7 @@ $redis-cll -h localhost -p 40000 GET "docker"
   filter:input
   Matches: default policy (ACCEPT)
   
-  Docker create a TCP Porxy (proxy/tcp_proxy.go) which listen on 40000 to forward the request. By forwarding traffic by application layer, docker simplify the iptables rules for local access.
+  Docker create a TCP Porxy (proxy/tcp_proxy.go) which listen on 40000 to forward the request to port 7379 on host 172.17.0.5. By forwarding traffic by application layer, docker simplify the iptables rules for local access.
 
   The localhost request traversal is finished.
 
