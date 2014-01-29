@@ -1,6 +1,6 @@
 High level Picture
 ==================
-![docker network](https://rawgithub.com/andl/docker-explain/master/static/docker_network.svg)
+![docker network](https://raw.github.com/andl/docker-explain/master/static/docker_network.png)
 
 
 Testing environment
