@@ -27,37 +27,22 @@ $ifconfig
 docker0   Link encap:Ethernet  HWaddr FE:BB:CE:6D:95:40
           inet addr:172.17.42.1  Bcast:0.0.0.0  Mask:255.255.0.0
           inet6 addr: fe80::2438:41ff:fed3:cd69/64 Scope:Link
-          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
-          RX packets:3042 errors:0 dropped:0 overruns:0 frame:0
-          TX packets:7374 errors:0 dropped:0 overruns:0 carrier:0
-          collisions:0 txqueuelen:0
-          RX bytes:160471 (156.7 KiB)  TX bytes:10623109 (10.1 MiB)
+          ....
 
 eth0      Link encap:Ethernet  HWaddr 00:50:56:A6:99:F1
           inet addr:10.146.22.21  Bcast:10.146.22.255  Mask:255.255.255.0
           inet6 addr: fe80::250:56ff:fea6:99f1/64 Scope:Link
-          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
-          RX packets:62139 errors:0 dropped:0 overruns:0 frame:0
-          TX packets:27399 errors:0 dropped:0 overruns:0 carrier:0
-          collisions:0 txqueuelen:1000
-          RX bytes:25108220 (23.9 MiB)  TX bytes:7624327 (7.2 MiB)
+          ....
 
 lo        Link encap:Local Loopback
           inet addr:127.0.0.1  Mask:255.0.0.0
           inet6 addr: ::1/128 Scope:Host
-          UP LOOPBACK RUNNING  MTU:16436  Metric:1
-          RX packets:34 errors:0 dropped:0 overruns:0 frame:0
-          TX packets:34 errors:0 dropped:0 overruns:0 carrier:0
-          collisions:0 txqueuelen:0
-          RX bytes:1922 (1.8 KiB)  TX bytes:1922 (1.8 KiB)
+          ....
 
 veth72x2M5 Link encap:Ethernet  HWaddr FE:BB:CE:6D:95:40
           inet6 addr: fe80::fcbb:ceff:fe6d:9540/64 Scope:Link
           UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
-          RX packets:28 errors:0 dropped:0 overruns:0 frame:0
-          TX packets:40 errors:0 dropped:0 overruns:0 carrier:0
-          collisions:0 txqueuelen:1000
-          RX bytes:1993 (1.9 KiB)  TX bytes:2680 (2.6 KiB) 
+          .... 
 ```
 
 The routing table:
@@ -111,7 +96,7 @@ Case 1 (Packet from remote host)
 
 In my dev box(10.110.124.185), I want to access the redis service on 10.146.22.21
 ```
-$ redis-cli -h 10.146.22.21 -p 40000 SET "docker"
+$ redis-cli -h 10.146.22.21 -p 40000 GET "docker"
 "awesome"
 ```
 
@@ -300,7 +285,7 @@ _=/usr/bin/env
 Debug Iptables
 ===============
 
-The simplest way is use LOGGINGG target.
+The simplest way is use LOGGING target.
 
 OR use the TRACE target if you want to know more details: http://backreference.org/2010/06/11/iptables-debugging/
 
@@ -322,7 +307,9 @@ http://www.iptables.info/en/iptables-contents.html
 
 http://inai.de/images/nf-packet-flow.png
 
-(SVG version) http://upload.wikimedia.org/wikipedia/commons/3/37/Netfilter-packet-flow.svg 
+http://upload.wikimedia.org/wikipedia/commons/3/37/Netfilter-packet-flow.svg (SVG version) 
+
+http://linux-ip.net/nf/nfk-traversal.png (Iptables only)
 
 ## eatables
 http://ebtables.sourceforge.net/br_fw_ia/br_fw_ia.html
