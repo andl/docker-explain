@@ -5,7 +5,7 @@ CentOS (6.5) + Docker (0.7.2)
 Refer to http://docs.docker.io/en/latest/examples/running_redis_service/ to create a redis image.
 
 ```
-$ sudo docker run  -name myredis -d -p 0.0.0.0:40000:6379 andl/redis 
+$ sudo docker run -name myredis -d -p 0.0.0.0:40000:6379 andl/redis 
 $ sudo docker inspect myredis | grep IPAddress
     "IPAddress”:  “172.17.0.5"
 ```
