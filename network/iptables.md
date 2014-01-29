@@ -279,11 +279,14 @@ _=/usr/bin/env
 
 Debug Iptables
 ===============
+
 The simplest way is use LOGGINGG target.
+
 OR use the TRACE target if you want to know more details: http://backreference.org/2010/06/11/iptables-debugging/
 
 Debug ebtables
 ==============
+
 Use eatables log watcher extension, for example:
 ```
 $sudo ebtables -t broute -A BROUTING --log-level 6 --log-ip --log-prefix "TRACE: eb:broute:BROUTING" -j ACCEPT
@@ -293,11 +296,13 @@ $sudo ebtables -t nat -A OUTPUT --log-level 6 --log-ip --log-prefix "TRACE: eb:n
 Refers
 =======
 
-# Iptables
+## Iptables
 
 http://www.iptables.info/en/iptables-contents.html
+
 http://inai.de/images/nf-packet-flow.png
+
 (SVG version) http://upload.wikimedia.org/wikipedia/commons/3/37/Netfilter-packet-flow.svg 
 
-# eatables
+## eatables
 http://ebtables.sourceforge.net/br_fw_ia/br_fw_ia.html
