@@ -1,3 +1,8 @@
+High level Picture
+==================
+![docker network](https://rawgithub.com/andl/docker-explain/master/static/docker_network.svg)
+
+
 Testing environment
 ===================
 CentOS (6.5) + Docker (0.7.2)
